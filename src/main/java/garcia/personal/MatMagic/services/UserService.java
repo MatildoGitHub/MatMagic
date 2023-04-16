@@ -1,0 +1,80 @@
+package garcia.personal.MatMagic.services;
+
+import garcia.personal.MatMagic.models.User;
+import garcia.personal.MatMagic.repositories.UserRepository;
+import garcia.personal.MatMagic.utils.JwtUtils;
+import garcia.personal.MatMagic.utils.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.BindingResult;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private JwtUtils jwtUtils;
+
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public User authenticate(String email, String password) {
+        User user = findByEmail(email);
+        if (user != null) {
+            String hashedPassword = user.getPassword();
+            return PasswordEncoder.matches(password, hashedPassword) ? user : null;
+        }
+        return null;
+    }
+
+    public List<User> listAll() {
+        return userRepository.findAll();
+    }
+
+    public ResponseEntity<String> getUserResponseEntity(User user, BindingResult bindingResult) {
+
+        ResponseEntity<String> hasErrors = isACorrectUserData(user, bindingResult);
+        if (hasErrors != null) return hasErrors;
+
+        // Verificar si el usuario ya existe en la base de datos
+        Optional<User> existingUser = Optional.ofNullable(userRepository.findByEmail(user.getEmail()));
+        if (existingUser.isPresent())
+            return ResponseEntity.badRequest().build();
+
+
+        // Crear el nuevo usuario
+        user.setPassword(PasswordEncoder.encode(user.getPassword())); // Encriptar la contraseña
+        User savedUser = userRepository.save(user);
+
+        return ResponseEntity.created(URI.create("/api/users/" + savedUser.getId())).body(new StringBuilder().append("Email Send to email: ").append(user.getEmail()).toString());
+    }
+
+    private static ResponseEntity<String> isACorrectUserData(User user, BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors() || user.getEmail() == null || user.getPassword() == null)
+            return ResponseEntity.badRequest().body("data provided has errors");
+
+        return null;
+    }
+
+    public ResponseEntity<String> getLogUser(User user, BindingResult bindingResult) {
+
+        ResponseEntity<String> hasErrors = isACorrectUserData(user, bindingResult);
+        if (hasErrors != null) return hasErrors;
+
+        User realUser = authenticate(user.getEmail(),user.getPassword());
+
+            return realUser != null ?
+                    ResponseEntity.created(URI.create("/api/users/" + realUser.getId()))
+                            .body(jwtUtils.generateJwt(user)) :
+                    ResponseEntity.badRequest().body("User data does not match");
+    }
+}
