@@ -27,7 +27,7 @@ public class UserController {
 
     @PostMapping("/create")
     public ResponseEntity<String> createUser(@Valid @RequestBody User user, BindingResult bindingResult) {
-        return userService.getUserResponseEntity(user, bindingResult);
+        return userService.getUserCreated(user, bindingResult);
     }
 
     @PostMapping("/log")
