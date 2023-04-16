@@ -3,6 +3,7 @@ package garcia.personal.MatMagic.services;
 import garcia.personal.MatMagic.models.JwtAgpRequest;
 import garcia.personal.MatMagic.models.User;
 import garcia.personal.MatMagic.repositories.UserRepository;
+import garcia.personal.MatMagic.utils.FinalUtil;
 import garcia.personal.MatMagic.utils.JwtUtils;
 import garcia.personal.MatMagic.utils.PasswordEncoder;
 import io.jsonwebtoken.Claims;
@@ -44,23 +45,22 @@ public class UserService {
     }
 
     //esta funcion sirve para crear Un Usuario
-    public ResponseEntity<String> getUserResponseEntity(User user, BindingResult bindingResult) {
+    public ResponseEntity<String> getUserCreated(User user, BindingResult bindingResult) {
 
         ResponseEntity<String> hasErrors = isACorrectUserData(user, bindingResult);
         if (hasErrors != null) return hasErrors;
 
         // Verificar si el usuario ya existe en la base de datos
         Optional<User> existingUser = Optional.ofNullable(userRepository.findByEmail(user.getEmail()));
-        if (existingUser.isPresent() && existingUser.get().getEmail().equals( "invalid_email@example.com")) //basicamente hago esto para no romper el test creado
-            return ResponseEntity.badRequest().build();
+        if (existingUser.isPresent())
+            return ResponseEntity.badRequest().body(FinalUtil.USER_ALREADY_EXIST);
 
 
         // Crear el nuevo usuario
         user.setPassword(PasswordEncoder.encode(user.getPassword())); // Encriptar la contraseña
         User savedUser = userRepository.save(user);
 
-        return ResponseEntity.created(URI.create("/api/users/" + savedUser.getId()))
-                .body(new StringBuilder().append("Email Send to email: ").append(user.getEmail()).toString());
+        return ResponseEntity.created(URI.create(FinalUtil.PATH_CREATE)).body(new StringBuilder().append(FinalUtil.EMAIL_SEND_TO).append(savedUser.getEmail()).toString());
     }
 
     //funcion para logear y devolver el jwt
@@ -71,10 +71,7 @@ public class UserService {
 
         User realUser = authenticate(user.getEmail(), user.getPassword());
 
-        return realUser != null ?
-                ResponseEntity.created(URI.create("/api/users/" + realUser.getId()))
-                        .body(jwtUtils.generateJwt(realUser)) :
-                ResponseEntity.badRequest().body("User data does not match");
+        return realUser != null ? ResponseEntity.created(URI.create(FinalUtil.PATH_LOG + realUser.getId())).body(jwtUtils.generateJwt(realUser, true)) : ResponseEntity.badRequest().body(FinalUtil.USER_DATA_DOES_NOT_MATCH);
     }
 
     //funcion para verificar que el jwt es valido
@@ -82,15 +79,15 @@ public class UserService {
         ResponseEntity<String> hasErrors = isACorrectJwtData(jwt, bindingResult);
         if (hasErrors != null) return hasErrors;
 
-        Claims claim = jwtUtils.validateJwtAndGetClaims(jwt.getJwt()); //se verifica el jwt y devulve la claim
+        Claims claim = jwtUtils.validateJwtAndGetClaims(jwt.getJwt(), true); //se verifica el jwt y devulve la claim
         if (claim == null || claim.getSubject().trim().isEmpty())
-            return ResponseEntity.badRequest().body("jwt provided is not valid");
+            return ResponseEntity.badRequest().body(FinalUtil.JWT_PROVIDED_IS_NOT_VALID);
 
         try {
             User user = userRepository.findById(new Long(claim.getSubject().trim())).get();
-            return ResponseEntity.badRequest().body("te has logeado con el email: " + user.getEmail() + "tu sesion expira en: " + claim.getExpiration());
+            return ResponseEntity.ok().body(FinalUtil.TE_HAS_LOGEADO_CON_EL_EMAIL + user.getEmail() + FinalUtil.TU_SESION_EXPIRA_EN + claim.getExpiration());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("jwt provided is not valid");
+            return ResponseEntity.badRequest().body(FinalUtil.JWT_PROVIDED_IS_NOT_VALID);
         }
     }
 
@@ -98,15 +95,16 @@ public class UserService {
     private static ResponseEntity<String> isACorrectUserData(User user, BindingResult bindingResult) {
 
         if (bindingResult.hasErrors() || user.getEmail().trim().isEmpty() || user.getPassword().trim().isEmpty())
-            return ResponseEntity.badRequest().body("data provided has errors");
+            return ResponseEntity.badRequest().body(FinalUtil.DATA_PROVIDED_HAS_ERRORS);
 
         return null;
     }
+
     //funcion para comprobar que los datos del jwt enviado son correctos
     private static ResponseEntity<String> isACorrectJwtData(JwtAgpRequest jwt, BindingResult bindingResult) {
 
         if (bindingResult.hasErrors() || jwt.getJwt().trim().isEmpty())
-            return ResponseEntity.badRequest().body("data provided has errors");
+            return ResponseEntity.badRequest().body(FinalUtil.DATA_PROVIDED_HAS_ERRORS);
 
         return null;
     }
