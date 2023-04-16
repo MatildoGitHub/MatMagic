@@ -1,9 +1,11 @@
 package garcia.personal.MatMagic.services;
 
+import garcia.personal.MatMagic.models.JwtAgpRequest;
 import garcia.personal.MatMagic.models.User;
 import garcia.personal.MatMagic.repositories.UserRepository;
 import garcia.personal.MatMagic.utils.JwtUtils;
 import garcia.personal.MatMagic.utils.PasswordEncoder;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -57,24 +59,49 @@ public class UserService {
         return ResponseEntity.created(URI.create("/api/users/" + savedUser.getId())).body(new StringBuilder().append("Email Send to email: ").append(user.getEmail()).toString());
     }
 
-    private static ResponseEntity<String> isACorrectUserData(User user, BindingResult bindingResult) {
-
-        if (bindingResult.hasErrors() || user.getEmail() == null || user.getPassword() == null)
-            return ResponseEntity.badRequest().body("data provided has errors");
-
-        return null;
-    }
-
     public ResponseEntity<String> getLogUser(User user, BindingResult bindingResult) {
 
         ResponseEntity<String> hasErrors = isACorrectUserData(user, bindingResult);
         if (hasErrors != null) return hasErrors;
 
-        User realUser = authenticate(user.getEmail(),user.getPassword());
+        User realUser = authenticate(user.getEmail(), user.getPassword());
 
-            return realUser != null ?
-                    ResponseEntity.created(URI.create("/api/users/" + realUser.getId()))
-                            .body(jwtUtils.generateJwt(user)) :
-                    ResponseEntity.badRequest().body("User data does not match");
+        return realUser != null ?
+                ResponseEntity.created(URI.create("/api/users/" + realUser.getId()))
+                        .body(jwtUtils.generateJwt(realUser)) :
+                ResponseEntity.badRequest().body("User data does not match");
+    }
+
+
+    public ResponseEntity<String> verifyJwt(JwtAgpRequest jwt, BindingResult bindingResult) {
+        ResponseEntity<String> hasErrors = isACorrectJwtData(jwt, bindingResult);
+        if (hasErrors != null) return hasErrors;
+
+        Claims claim = jwtUtils.validateJwtAndGetClaims(jwt.getJwt()); //se verifica el jwt y devulve la claim
+        if (claim == null || claim.getSubject().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("jwt provided is not valid");
+        }
+        try {
+            User user = userRepository.findById(new Long(claim.getSubject().trim())).get();
+            return ResponseEntity.badRequest().body("te has logeado con el email: " + user.getEmail() + "tu sesion expira en: " + claim.getExpiration());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("jwt provided is not valid");
+        }
+    }
+
+    private static ResponseEntity<String> isACorrectUserData(User user, BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors() || user.getEmail().trim().isEmpty() || user.getPassword().trim().isEmpty())
+            return ResponseEntity.badRequest().body("data provided has errors");
+
+        return null;
+    }
+
+    private static ResponseEntity<String> isACorrectJwtData(JwtAgpRequest jwt, BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors() || jwt.getJwt().trim().isEmpty())
+            return ResponseEntity.badRequest().body("data provided has errors");
+
+        return null;
     }
 }

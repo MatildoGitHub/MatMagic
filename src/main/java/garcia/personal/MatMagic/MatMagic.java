@@ -9,13 +9,13 @@ import org.springframework.context.annotation.PropertySources;
 @SpringBootApplication
 @Configuration
 @PropertySources({
-		@PropertySource("classpath:application.properties"),
-		@PropertySource("classpath:secrets.properties")
+        @PropertySource("classpath:application.properties"),
+        @PropertySource("classpath:secrets.properties")
 })
 public class MatMagic {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MatMagic.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(MatMagic.class, args);
+    }
 
 }
