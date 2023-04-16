@@ -8,10 +8,7 @@ import org.springframework.context.annotation.PropertySources;
 
 @SpringBootApplication
 @Configuration
-@PropertySources({
-        @PropertySource("classpath:application.properties"),
-        @PropertySource("classpath:secrets.properties")
-})
+@PropertySources({@PropertySource("classpath:application.properties"), @PropertySource("classpath:secrets.properties")})
 public class MatMagic {
 
     public static void main(String[] args) {

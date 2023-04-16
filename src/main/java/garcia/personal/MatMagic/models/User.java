@@ -11,12 +11,15 @@ public class User {
     private String email;
     private String password;
 
+    private Boolean active;
+
     public User() {
     }
 
     public User(String email, String password) {
         this.email = email;
         this.password = password;
+        active = false;
     }
 
     // Getters y setters
@@ -42,5 +45,13 @@ public class User {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 }
