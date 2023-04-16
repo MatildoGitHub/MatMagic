@@ -9,9 +9,14 @@ import garcia.personal.MatMagic.utils.PasswordEncoder;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +28,8 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private JavaMailSender javaMailSender;
 
 
     public User findByEmail(String email) {
@@ -59,7 +66,7 @@ public class UserService {
         // Crear el nuevo usuario
         user.setPassword(PasswordEncoder.encode(user.getPassword())); // Encriptar la contraseña
         User savedUser = userRepository.save(user);
-
+        activateUser(savedUser);
         return ResponseEntity.created(URI.create(FinalUtil.PATH_CREATE)).body(new StringBuilder().append(FinalUtil.EMAIL_SEND_TO).append(savedUser.getEmail()).toString());
     }
 
@@ -88,6 +95,23 @@ public class UserService {
             return ResponseEntity.ok().body(FinalUtil.TE_HAS_LOGEADO_CON_EL_EMAIL + user.getEmail() + FinalUtil.TU_SESION_EXPIRA_EN + claim.getExpiration());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(FinalUtil.JWT_PROVIDED_IS_NOT_VALID);
+        }
+    }
+
+    public void activateUser(User user){
+        try {
+            // crea un mensaje de correo electrónico
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(user.getEmail().trim());
+            helper.setSubject("Tu cuenta ha sido activada");
+            helper.setText("Tu cuenta ha sido activada correctamente.");
+
+            // envía el correo electrónico
+            javaMailSender.send(message);
+            System.out.println("Mensaje enviado correctamente.");
+        }catch (Exception e){
+            System.out.println(e.getMessage());
         }
     }
 
