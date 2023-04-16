@@ -78,9 +78,9 @@ public class UserService {
         if (hasErrors != null) return hasErrors;
 
         Claims claim = jwtUtils.validateJwtAndGetClaims(jwt.getJwt()); //se verifica el jwt y devulve la claim
-        if (claim == null || claim.getSubject().trim().isEmpty()) {
+        if (claim == null || claim.getSubject().trim().isEmpty())
             return ResponseEntity.badRequest().body("jwt provided is not valid");
-        }
+
         try {
             User user = userRepository.findById(new Long(claim.getSubject().trim())).get();
             return ResponseEntity.badRequest().body("te has logeado con el email: " + user.getEmail() + "tu sesion expira en: " + claim.getExpiration());
