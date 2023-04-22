@@ -1,6 +1,7 @@
 package garcia.personal.MatMagic.models;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "Users")
@@ -10,10 +11,13 @@ public class User {
     private Long id;
     private String email;
     private String password;
-
+    private String uuid;
     private Boolean active;
+    @OneToMany(mappedBy = "user")
+    private List<Deck> decks;
 
     public User() {
+        active = false;
     }
 
     public User(String email, String password) {
@@ -53,5 +57,21 @@ public class User {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public List<Deck> getDecks() {
+        return decks;
+    }
+
+    public void setDecks(List<Deck> decks) {
+        this.decks = decks;
     }
 }

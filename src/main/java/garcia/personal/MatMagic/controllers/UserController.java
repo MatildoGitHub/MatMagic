@@ -1,6 +1,7 @@
 package garcia.personal.MatMagic.controllers;
 
 
+import garcia.personal.MatMagic.models.JsonUUID;
 import garcia.personal.MatMagic.models.JwtAgpRequest;
 import garcia.personal.MatMagic.models.User;
 import garcia.personal.MatMagic.services.UserService;
@@ -38,6 +39,11 @@ public class UserController {
     @PostMapping("/verify")
     public ResponseEntity<String> verifyJwt(@Valid @RequestBody JwtAgpRequest jwt, BindingResult bindingResult) {
         return userService.verifyJwt(jwt, bindingResult);
+    }
+
+    @PostMapping("/activate")
+    public ResponseEntity<String> activateUser(@Valid @RequestBody JsonUUID uuid, BindingResult bindingResult){
+        return userService.activateUser(uuid,bindingResult);
     }
 
 
